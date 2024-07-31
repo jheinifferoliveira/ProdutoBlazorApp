@@ -1,0 +1,139 @@
+﻿@page "/Consultar-fornecedor"
+@using ProdutoBlazorApp.Reponses
+@using ProdutoBlazorApp.Settings
+@using ProdutoBlazorApp.ViewModels
+
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+
+<div class="card m-3">
+    <div class="card-body">
+        <h2>Consulta de Fornecedores</h2>
+        <p>
+            Consulte os fornecedores que estão cadastrados.
+        </p>
+
+        @if (!string.IsNullOrEmpty(mensagemSucesso))
+        {
+            <div class="alert alert-success">
+                <strong>@mensagemSucesso</strong>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(mensagemAlerta))
+        {
+            <div class="alert alert-warning">
+                <strong>@mensagemAlerta</strong>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(mensagemErro))
+        {
+            <div class="alert alert-danger">
+                <strong>@mensagemErro</strong>
+            </div>
+        }
+
+         <EditForm Model="@viewModel" OnValidSubmit="@OnSubmit">
+            <DataAnnotationsValidator />
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <input type="submit" class="btn btn-success mt-4"
+                           value="Pesquisar fornecedores" />
+                </div>
+            </div>
+        </EditForm>
+         @if (fornecedor.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Id</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in fornecedor)
+                        {
+                            <tr>
+                                <td>@item.Nome</td>
+                                <td>@item.Id</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary me-2"
+                                            @onclick="(() => OnEdit(item.Id))">
+                                        Atualizar
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="5">
+                                Quantidade de fornecedores: @fornecedor.Count
+                                    </td>
+                                </tr>
+                        
+
+                        
+                            </tfoot>
+                            </table>
+                            </div>
+
+        }
+        
+    </div>
+</div>
+
+@code {
+
+    private ConsultarFornecedorViewModel viewModel = new ConsultarFornecedorViewModel();
+    private List<FornecedorResponse> fornecedor = new List<FornecedorResponse>();
+
+    private string mensagemSucesso = string.Empty;
+    private string mensagemAlerta = string.Empty;
+    private string mensagemErro = string.Empty;
+
+    protected async Task OnSubmit()
+    {
+        try
+        {
+            mensagemSucesso = string.Empty;
+            mensagemAlerta = string.Empty;
+            mensagemErro = string.Empty;
+
+            var result = await Http.GetAsync(AppSettings.ApiFornecedor);
+            if (result.IsSuccessStatusCode)
+            {
+                fornecedor = result.Content.ReadFromJsonAsync<List<FornecedorResponse>>().Result;
+
+                if (fornecedor.Any())
+                {
+                    mensagemSucesso = $"Consulta realizada com sucesso. {fornecedor.Count} fornecedor(es) obtido(s).";
+                }
+                else
+                {
+                    mensagemAlerta = "Nenhuma fornecedor foi encontrado.";
+                }
+
+            }
+            else
+            {
+                var response = result.Content.ReadFromJsonAsync<ErrorResponse>().Result;
+                mensagemErro = response?.Message;
+            }
+
+        }
+        catch (Exception e)
+        {
+            mensagemErro = e.Message;
+        }
+    }
+
+    protected async Task OnEdit(Guid? Id)
+    {
+        Navigation.NavigateTo($"atualizar-fornecedor/{Id}", true);
+    }
+
+
+}

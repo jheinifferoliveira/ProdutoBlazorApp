@@ -1,0 +1,138 @@
+﻿@page "/"
+@using ProdutoBlazorApp.Reponses
+@using ProdutoBlazorApp.Settings
+@using ProdutoBlazorApp.ViewModels
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<div class="card m-3">
+    <div class="card-body">
+        <h2>Consulta de Produtos</h2>
+        <p>
+            Consulte os produtos que estão cadastrados.
+        </p>
+        @if (!string.IsNullOrEmpty(mensagemSucesso))
+        {
+            <div class="alert alert-success">
+                <strong>@mensagemSucesso</strong>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(mensagemAlerta))
+        {
+            <div class="alert alert-warning">
+                <strong>@mensagemAlerta</strong>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(mensagemErro))
+        {
+            <div class="alert alert-danger">
+                <strong>@mensagemErro</strong>
+            </div>
+        }
+
+        <EditForm Model="@viewModel" OnValidSubmit="@OnSubmit">
+            <DataAnnotationsValidator />
+
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <input type="submit" class="btn btn-success mt-4"
+                           value="Pesquisar produtos" />
+                </div>
+            </div>
+        </EditForm>
+
+        @if (produto.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Preço</th>
+                            <th>Quantidade</th>
+                            <th>FornecedorId</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in produto)
+                        {
+                            <tr>
+                                <td>@item.Nome</td>
+                                <td>@item.Preco</td>
+                                <td>@item.Quantidade</td>
+                                <td>@item.FornecedorId</td>
+                                <td>
+
+                                    <button class="btn btn-sm btn-outline-primary me-2"
+                                            @onclick="(() => OnEdit(item.Id))">
+                                        Editar
+                                    </button>
+                            </td>
+                        </tr>
+                        }
+        
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="5">
+                            Quantidade de produtos: @produto.Count
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        }
+    </div>
+</div>
+
+@code {
+
+    private ConsultarProdutoViewModel viewModel = new ConsultarProdutoViewModel();
+    private List<ProdutoResponse> produto = new List<ProdutoResponse>();
+
+    private string mensagemSucesso = string.Empty;
+    private string mensagemAlerta = string.Empty;
+    private string mensagemErro = string.Empty;
+
+    protected async Task OnSubmit()
+    {
+        try
+        {
+            mensagemSucesso = string.Empty;
+            mensagemAlerta = string.Empty;
+            mensagemErro = string.Empty;
+
+            var result = await Http.GetAsync(AppSettings.ApiProdutos);
+            if (result.IsSuccessStatusCode)
+            {
+                produto = result.Content.ReadFromJsonAsync<List<ProdutoResponse>>().Result;
+
+                if (produto.Any())
+                {
+                    mensagemSucesso = $"Consulta realizada com sucesso. {produto.Count} produto(s) obtido(s).";
+                }
+                else
+                {
+                    mensagemAlerta = "Nenhuma tarefa foi encontrada.";
+                }
+
+            }
+            else
+            {
+                var response = result.Content.ReadFromJsonAsync<ErrorResponse>().Result;
+                mensagemErro = response?.Message;
+            }
+
+        }
+        catch (Exception e)
+        {
+            mensagemErro = e.Message;
+        }
+    }
+
+    protected async Task OnEdit(Guid? Id)
+    {
+        Navigation.NavigateTo($"atualizar-produto/{Id}", true);
+    }
+
+}

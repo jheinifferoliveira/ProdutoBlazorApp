@@ -1,0 +1,109 @@
+﻿@page "/Criar-produto"
+@using ProdutoBlazorApp.Reponses
+@using ProdutoBlazorApp.Settings
+@using ProdutoBlazorApp.ViewModels
+
+@inject HttpClient Http
+
+<div class="card m-3">
+    <div class="card-body">
+        <h2>Cadastro de Produtos</h2>
+        <p>Crie um produto.</p>
+
+        @if (!string.IsNullOrEmpty(mensagemSucesso))
+        {
+            <div class="alert alert-success">
+                <strong>@mensagemSucesso</strong>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(mensagemErro))
+        {
+            <div class="alert alert-danger">
+                <strong>@mensagemErro</strong>
+            </div>
+        }
+
+        <EditForm Model="@viewModel" OnValidSubmit="@OnSubmit">
+            <DataAnnotationsValidator />
+
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <label>Nome do Produto:</label>
+                    <InputText type="text" class="form-control" @bind-Value="viewModel.Nome" />
+                    <div class="text-danger">
+                        <ValidationMessage For="@(() => viewModel.Nome)" />
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                        <label>Preço do Produto:</label>
+                    <InputText type="number" step="any" class="form-control" @bind-Value="viewModel.Preco" />
+                    <div class="text-danger">
+                        <ValidationMessage For="@(() => viewModel.Preco)" />
+                    </div>
+                    </div>
+
+                <div class="col-md-3">
+                    <label>Quantidade do Produto:</label>
+                    <InputText type="number" class="form-control" @bind-Value="viewModel.Quantidade" />
+                    <div class="text-danger">
+                        <ValidationMessage For="@(() => viewModel.Quantidade)" />
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <label> FornecedorId do Produto:</label>
+                    <InputText type="text" class="form-control" @bind-Value="viewModel.FornecedorId" />
+                    <div class="text-danger">
+                        <ValidationMessage For="@(() => viewModel.FornecedorId)" />
+                    </div>
+                </div>
+            
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <input type= "submit" class="btn btn-success me-2" value="Realizar Cadastro" />
+
+                    <a href="/" class="btn btn-light">
+                        Ir para a página de consulta
+                    </a>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+
+@code {
+
+    private CriarProdutoViewModel viewModel = new CriarProdutoViewModel();
+    private string mensagemSucesso;
+    private string mensagemErro;
+
+    protected async Task OnSubmit()
+    {
+        try
+        {
+            mensagemSucesso = string.Empty;
+            mensagemErro = string.Empty;
+
+            var result = await Http.PostAsJsonAsync(AppSettings.ApiProdutos, viewModel);
+
+            if (result.IsSuccessStatusCode)
+            {
+                mensagemSucesso = "Produto cadastrado com sucesso!";
+                viewModel = new CriarProdutoViewModel();
+            }
+            else
+            {
+                var response = result.Content.ReadFromJsonAsync<ErrorResponse>().Result;
+                mensagemErro = response?.Message;
+            }
+        }
+        catch (Exception e)
+        {
+            mensagemErro = e.Message;
+        }
+    }
+}
+

@@ -1,0 +1,110 @@
+﻿@page "/atualizar-fornecedor/{Id}"
+@using ProdutoBlazorApp.Reponses
+@using ProdutoBlazorApp.Settings
+@using ProdutoBlazorApp.ViewModels
+
+@inject HttpClient Http
+
+<div class="card m-3">
+    <div class="card-body">
+        <h2>Atualização de Fornecedor</h2>
+        <p>Atualize os dados do fornecedor.</p>
+
+        @if (!string.IsNullOrEmpty(mensagemSucesso))
+        {
+            <div class="alert alert-success">
+                <strong>@mensagemSucesso</strong>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(mensagemErro))
+        {
+            <div class="alert alert-danger">
+                <strong>@mensagemErro</strong>
+            </div>
+        }
+
+        <EditForm Model="@viewModel" OnValidSubmit="@OnSubmit">
+            <DataAnnotationsValidator />
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <label>Nome do fornecedor:</label>
+                    <InputText type="text" class="form-control" @bind-Value="viewModel.Nome" />
+                    <div class="text-danger">
+                        <ValidationMessage For="@(() => viewModel.Nome)" />
+                    </div>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <input type="submit" class="btn btn-primary me-2"
+                           value="Realizar Alterações" />
+
+                    <a href="/Consultar-fornecedor" class="btn btn-light">
+                        Ir para a página de consulta
+                    </a>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private AtualizarFornecedorViewModel viewModel = new AtualizarFornecedorViewModel();
+
+    [Parameter]
+    public string? Id { get; set; }
+
+    private string mensagemSucesso;
+    private string mensagemErro;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await Http.GetAsync($"{AppSettings.ApiFornecedor}{Id}");
+            if (result.IsSuccessStatusCode)
+            {
+                var response = result.Content.ReadFromJsonAsync<FornecedorResponse>().Result;
+
+
+                viewModel.Id = response.Id;
+                viewModel.Nome = response.Nome;
+            }
+            else
+            {
+                var response = result.Content.ReadFromJsonAsync<ErrorResponse>().Result;
+                mensagemErro = response?.Message;
+            }
+        }
+        catch (Exception e)
+        {
+            mensagemErro = e.Message;
+        }
+    }
+    protected async Task OnSubmit()
+    {
+        try
+        {
+            mensagemSucesso = string.Empty;
+            mensagemErro = string.Empty;
+
+            var result = await Http.PutAsJsonAsync(AppSettings.ApiFornecedor, viewModel);
+
+            if (result.IsSuccessStatusCode)
+            {
+                mensagemSucesso = "Fornecedor atualizado com sucesso!";
+                viewModel = new AtualizarFornecedorViewModel();
+            }
+            else
+            {
+                var response = result.Content.ReadFromJsonAsync<ErrorResponse>().Result;
+                mensagemErro = response?.Message;
+            }
+        }
+        catch (Exception e)
+        {
+            mensagemErro = e.Message;
+        }
+    }
+
+}

@@ -1,0 +1,142 @@
+﻿@page "/atualizar-produto/{Id}"
+@using ProdutoBlazorApp.Reponses
+@using ProdutoBlazorApp.Settings
+@using ProdutoBlazorApp.ViewModels
+@using System.Globalization
+@inject HttpClient Http
+
+<div class="card m-3">
+    <div class="card-body">
+        <h2>Edição de Produtos</h2>
+        <p>Atualize os dados do produto.</p>
+
+         @if (!string.IsNullOrEmpty(mensagemSucesso))
+        {
+            <div class="alert alert-success">
+                <strong>@mensagemSucesso</strong>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(mensagemErro))
+        {
+            <div class="alert alert-danger">
+                <strong>@mensagemErro</strong>
+            </div>
+        }
+
+        <EditForm Model="@viewModel" OnValidSubmit="@OnSubmit">
+            <DataAnnotationsValidator />
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <label>Nome do Produto:</label>
+                    <InputText type="text"  class="form-control" @bind-Value="viewModel.Nome" />
+                    <div class="text-danger">
+                        <ValidationMessage For="@(() => viewModel.Nome)" />
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <label>Preço do Produto:</label>
+                    <InputText type="number" step="any" class="form-control" @bind-Value="viewModel.Preco" />
+                        <div class="text-danger">
+                            <ValidationMessage For="@(() => viewModel.Preco)" />
+                        </div>
+                </div>
+
+                <div class="col-md-3">
+                    <label>Quantidade do Produto:</label>
+                    <InputText type="number" class="form-control" @bind-Value="viewModel.Quantidade" />
+                    <div class="text-danger">
+                        <ValidationMessage For="@(() => viewModel.Quantidade)" />
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <label> FornecedorId do Produto:</label>
+                    <InputText type="text" class="form-control" @bind-Value="viewModel.FornecedorId" />
+                    <div class="text-danger">
+                        <ValidationMessage For="@(() => viewModel.FornecedorId)" />
+                    </div>
+                </div>
+
+              
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <input type="submit" class="btn btn-primary me-2"
+                           value="Realizar Alteração" />
+
+                    <a href="/" class="btn btn-light">
+                        Ir para a página de consulta
+                    </a>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+
+@code {
+
+    private AtualizarProdutoViewModel viewModel = new AtualizarProdutoViewModel();
+
+    [Parameter]
+    public string? Id { get; set; }
+
+    private string mensagemSucesso;
+    private string mensagemErro;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await Http.GetAsync($"{AppSettings.ApiProdutos}{Id}");
+            if (result.IsSuccessStatusCode)
+            {
+                var response = result.Content.ReadFromJsonAsync<ProdutoResponse>().Result;
+
+
+                viewModel.Id = response.Id;
+                viewModel.Nome = response.Nome;
+                viewModel.Preco = response.Preco.ToString();
+                viewModel.Quantidade = response.Quantidade.ToString();
+                viewModel.FornecedorId = response.FornecedorId.ToString();
+
+            }
+            else
+            {
+                var response = result.Content.ReadFromJsonAsync<ErrorResponse>().Result;
+                mensagemErro = response?.Message;
+            }
+        }
+        catch (Exception e)
+        {
+            mensagemErro = e.Message;
+        }
+    }
+    protected async Task OnSubmit()
+    {
+        try
+        {
+            mensagemSucesso = string.Empty;
+            mensagemErro = string.Empty;
+
+            var result = await Http.PutAsJsonAsync(AppSettings.ApiProdutos, viewModel);
+
+            if (result.IsSuccessStatusCode)
+            {
+                mensagemSucesso = "Produto atualizado com sucesso!";
+                viewModel = new AtualizarProdutoViewModel();
+            }
+            else
+            {
+                var response = result.Content.ReadFromJsonAsync<ErrorResponse>().Result;
+                mensagemErro = response?.Message;
+            }
+        }
+        catch (Exception e)
+        {
+            mensagemErro = e.Message;
+        }
+    }
+
+}
